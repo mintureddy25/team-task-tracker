@@ -7,6 +7,7 @@ import { logger } from './config/logger';
 import { errorHandler } from './middlewares/error-handler';
 import { notFound } from './middlewares/not-found';
 import { authRoutes } from './modules/auth/auth.routes';
+import { projectsRoutes } from './modules/projects/projects.routes';
 
 export function buildApp(): Application {
   const app = express();
@@ -26,8 +27,8 @@ export function buildApp(): Application {
   );
 
   app.use('/auth', authRoutes);
+  app.use('/projects', projectsRoutes);
   // Mounted in subsequent commits:
-  //   app.use('/projects', projectRoutes);
   //   app.use('/tasks', taskRoutes);
   //   app.use('/notifications', notificationRoutes);
   //   app.use('/analytics', analyticsRoutes);
