@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { logger } from './config/logger';
 import { errorHandler } from './middlewares/error-handler';
 import { notFound } from './middlewares/not-found';
+import { authRoutes } from './modules/auth/auth.routes';
 
 export function buildApp(): Application {
   const app = express();
@@ -24,8 +25,8 @@ export function buildApp(): Application {
     res.json({ status: 200, service: 'team-task-tracker', uptime: process.uptime() }),
   );
 
-  // Routes will be mounted here in subsequent commits:
-  //   app.use('/auth', authRoutes);
+  app.use('/auth', authRoutes);
+  // Mounted in subsequent commits:
   //   app.use('/projects', projectRoutes);
   //   app.use('/tasks', taskRoutes);
   //   app.use('/notifications', notificationRoutes);
