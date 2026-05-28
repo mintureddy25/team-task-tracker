@@ -1,0 +1,119 @@
+// dbdiagram.io source for ER diagram (docs/er-diagram.png)
+// Live: https://dbdiagram.io/d/6a184962b62396d22c90e4e9
+//
+// This file is the diagram-only definition. The real schema is prisma/schema.prisma.
+
+Enum Role {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+Enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+Enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  BLOCKED
+}
+
+Enum NotificationType {
+  TASK_ASSIGNED
+  TASK_STATUS_CHANGED
+  TASK_DUE_SOON
+}
+
+Table organizations {
+  id uuid [pk]
+  name varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table users {
+  id uuid [pk]
+  org_id uuid [not null, ref: > organizations.id]
+  email varchar
+  password_hash varchar
+  name varchar
+  role Role
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (org_id)
+    (org_id, email) [unique]
+  }
+}
+
+Table projects {
+  id uuid [pk]
+  org_id uuid [not null, ref: > organizations.id]
+  name varchar
+  description text
+  created_by_id uuid [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (org_id)
+  }
+}
+
+Table tasks {
+  id uuid [pk]
+  project_id uuid [not null, ref: > projects.id]
+  title varchar
+  description text
+  priority Priority
+  status TaskStatus
+  assignee_id uuid [ref: > users.id]
+  created_by_id uuid [ref: > users.id]
+  due_date timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (status)
+    (assignee_id)
+    (due_date)
+    (assignee_id, status)
+    (project_id, status)
+  }
+}
+
+Table refresh_tokens {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  token_hash varchar [unique]
+  expires_at timestamp
+  revoked_at timestamp
+  replaced_by varchar
+  created_at timestamp
+
+  indexes {
+    (user_id)
+    (expires_at)
+  }
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  type NotificationType
+  task_id uuid [ref: > tasks.id]
+  payload json
+  read_at timestamp
+  created_at timestamp
+
+  indexes {
+    (user_id, read_at)
+    (user_id, created_at)
+  }
+}
