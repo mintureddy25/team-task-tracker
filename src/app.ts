@@ -10,6 +10,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { usersRoutes } from './modules/users/users.routes';
 import { projectsRoutes } from './modules/projects/projects.routes';
 import { tasksRoutes } from './modules/tasks/tasks.routes';
+import { notificationsRoutes } from './modules/notifications/notifications.routes';
 
 export function buildApp(): Application {
   const app = express();
@@ -32,8 +33,8 @@ export function buildApp(): Application {
   app.use('/users', usersRoutes);
   app.use('/projects', projectsRoutes);
   app.use('/tasks', tasksRoutes);
+  app.use('/notifications', notificationsRoutes);
   // Mounted in subsequent commits:
-  //   app.use('/notifications', notificationRoutes);
   //   app.use('/analytics', analyticsRoutes);
 
   app.use(notFound);

@@ -9,6 +9,7 @@ import {
   setCached,
   invalidatePattern,
 } from '../../utils/cache';
+import * as notifications from '../notifications/notifications.service';
 import type {
   CreateTaskInput,
   UpdateTaskInput,
@@ -49,6 +50,15 @@ export async function create(user: ActingUser, input: CreateTaskInput) {
 
   if (task.assigneeId) {
     await invalidatePattern(tasksByAssigneePattern(task.assigneeId));
+    // Don't notify a user about a task they just self-created
+    if (task.assigneeId !== user.id) {
+      await notifications.emit({
+        userId: task.assigneeId,
+        type: 'TASK_ASSIGNED',
+        taskId: task.id,
+        payload: { taskTitle: task.title, actorId: user.id, projectId: task.projectId },
+      });
+    }
   }
   return task;
 }
@@ -161,6 +171,20 @@ export async function update(user: ActingUser, id: string, input: UpdateTaskInpu
 
   // Reassignment can touch TWO assignees — invalidate both old & new
   await invalidateAssigneeCaches(existing.assigneeId, updated.assigneeId);
+
+  // Notify the new assignee if assignment changed (and not self-assign)
+  if (
+    updated.assigneeId &&
+    updated.assigneeId !== existing.assigneeId &&
+    updated.assigneeId !== user.id
+  ) {
+    await notifications.emit({
+      userId: updated.assigneeId,
+      type: 'TASK_ASSIGNED',
+      taskId: updated.id,
+      payload: { taskTitle: updated.title, actorId: user.id, projectId: updated.projectId },
+    });
+  }
   return updated;
 }
 
@@ -216,6 +240,20 @@ export async function changeStatus(
 
   if (updated.assigneeId) {
     await invalidatePattern(tasksByAssigneePattern(updated.assigneeId));
+    // Notify assignee unless they're the one moving it
+    if (updated.assigneeId !== user.id) {
+      await notifications.emit({
+        userId: updated.assigneeId,
+        type: 'TASK_STATUS_CHANGED',
+        taskId: updated.id,
+        payload: {
+          taskTitle: updated.title,
+          from: existing.status,
+          to: updated.status,
+          actorId: user.id,
+        },
+      });
+    }
   }
   return updated;
 }

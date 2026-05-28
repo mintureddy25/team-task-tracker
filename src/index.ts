@@ -8,6 +8,7 @@ const app = buildApp();
 
 const server = app.listen(env.PORT, () => {
   logger.info(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+  logger.info(`SSE stream  at http://localhost:${env.PORT}/notifications/stream?token=...`);
 });
 
 async function shutdown(signal: string) {
