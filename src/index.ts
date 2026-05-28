@@ -8,6 +8,8 @@ const app = buildApp();
 
 const server = app.listen(env.PORT, () => {
   logger.info(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+  logger.info(`Swagger UI  at http://localhost:${env.PORT}/docs`);
+  logger.info(`OpenAPI JSON at http://localhost:${env.PORT}/docs/openapi.json`);
   logger.info(`SSE stream  at http://localhost:${env.PORT}/notifications/stream?token=...`);
 });
 

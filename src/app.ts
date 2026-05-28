@@ -2,8 +2,10 @@ import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { openapiSpec } from './config/openapi';
 import { errorHandler } from './middlewares/error-handler';
 import { notFound } from './middlewares/not-found';
 import { authRoutes } from './modules/auth/auth.routes';
@@ -29,6 +31,11 @@ export function buildApp(): Application {
   app.get('/health', (_req: Request, res: Response) =>
     res.json({ status: 200, service: 'team-task-tracker', uptime: process.uptime() }),
   );
+
+  // ─── API docs ───
+  // Postman: File > Import > Link → http://localhost:3000/docs/openapi.json
+  app.get('/docs/openapi.json', (_req, res) => res.json(openapiSpec));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
   app.use('/auth', authRoutes);
   app.use('/users', usersRoutes);
