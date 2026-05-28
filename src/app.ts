@@ -11,6 +11,7 @@ import { usersRoutes } from './modules/users/users.routes';
 import { projectsRoutes } from './modules/projects/projects.routes';
 import { tasksRoutes } from './modules/tasks/tasks.routes';
 import { notificationsRoutes } from './modules/notifications/notifications.routes';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
 
 export function buildApp(): Application {
   const app = express();
@@ -34,8 +35,7 @@ export function buildApp(): Application {
   app.use('/projects', projectsRoutes);
   app.use('/tasks', tasksRoutes);
   app.use('/notifications', notificationsRoutes);
-  // Mounted in subsequent commits:
-  //   app.use('/analytics', analyticsRoutes);
+  app.use('/analytics', analyticsRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
