@@ -33,10 +33,10 @@ router.patch(
   asyncHandler(controller.update),
 );
 
-// Only ADMIN can delete
+// ADMIN + MANAGER can delete — "manage projects" per spec includes deletion
 router.delete(
   '/:id',
-  requireRole('ADMIN'),
+  requireRole('ADMIN', 'MANAGER'),
   validate(projectIdParamSchema, 'params'),
   asyncHandler(controller.remove),
 );
