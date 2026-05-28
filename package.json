@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "test": "jest --runInBand",
+    "test": "LOG_LEVEL=silent jest --runInBand",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
