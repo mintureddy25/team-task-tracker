@@ -1,8 +1,9 @@
 # Team Task Tracker API
 
-REST API for a team-based task tracker with multi-tenant orgs, JWT auth + refresh rotation, RBAC enforced at the middleware layer, Redis-backed caching, and real-time notifications over SSE.
+REST API + dark-themed React SPA for a team-based task tracker with multi-tenant orgs, JWT auth + refresh rotation, RBAC enforced at the middleware layer, Redis-backed caching, and real-time notifications over SSE.
 
-**Stack:** Node.js · TypeScript · Express · Prisma · MySQL · Redis · Zod · Swagger · Jest · Docker
+**Backend:** Node.js · TypeScript · Express · Prisma · MySQL · Redis · Zod · Swagger · Jest · Docker
+**Frontend:** React 18 · TypeScript · Vite · Redux Toolkit + RTK Query · React Router · Tailwind CSS (dark)
 
 ---
 
@@ -30,6 +31,24 @@ Once it's up:
 - **OpenAPI JSON** — http://localhost:3000/docs/openapi.json
 - **Postman collection** — `docs/postman-collection.json` (or import the OpenAPI URL above directly in Postman)
 - SSE stream — `ws`-style `GET /notifications/stream?token=<jwt>` (use `EventSource` in a browser, or `curl -N`)
+
+### Frontend (in a second terminal)
+
+```bash
+cd frontend
+npm install
+npm run dev   # → http://localhost:5173
+```
+
+Vite proxies `/api/*` and `/notifications/stream` to the backend on `:3000`, so the SPA uses relative URLs. Open http://localhost:5173, **Register** a new org (you become ADMIN), then explore Board / Projects / Users / Analytics. The notification bell updates in real time over SSE as soon as someone assigns you a task or moves your task's status.
+
+For a production-style build:
+
+```bash
+cd frontend
+npm run build           # writes dist/
+npm run preview         # serves dist/ on :4173
+```
 
 ---
 
@@ -213,7 +232,7 @@ See [`docs/FUTURE_WORK.md`](./docs/FUTURE_WORK.md) for the full list. Highlights
 3. **Immutable audit log table** that survives even hard deletes — required for compliance.
 4. **Per-user rate limiting** (express-rate-limit + Redis store).
 5. **Distributed tracing** (OpenTelemetry → Jaeger) so request paths through middleware/service/DB are observable.
-6. **Frontend** — minimal React/Next.js task board to make the SSE stream visibly impressive.
+6. **Drag-and-drop kanban** on the task board (currently uses a status dropdown per card).
 7. **Comments, attachments, full-text search** (Meilisearch) on tasks.
 
 ---
@@ -251,19 +270,31 @@ team-task-tracker/
 ├── scripts/
 │   ├── cache-inspect.mjs       # redis key inspector
 │   └── gen-postman.mjs         # regenerate postman collection
-└── src/
-    ├── index.ts                # entry
-    ├── app.ts                  # express bootstrap
-    ├── config/                 # env, logger, prisma, redis, openapi
-    ├── middlewares/            # auth, rbac, validate, error-handler
-    ├── utils/                  # errors, tokens, password, cache, async-handler
-    └── modules/
-        ├── auth/               # register, login, refresh rotation
-        ├── users/              # list / change role / delete (with reassign)
-        ├── projects/           # CRUD + RBAC
-        ├── tasks/              # CRUD + status state machine + caching
-        ├── notifications/      # persisted + SSE stream
-        └── analytics/          # per-user overdue / done / rank
+├── src/                        # ── Backend (Express + TS) ──
+│   ├── index.ts                # entry
+│   ├── app.ts                  # express bootstrap
+│   ├── config/                 # env, logger, prisma, redis, openapi
+│   ├── middlewares/            # auth, rbac, validate, error-handler
+│   ├── utils/                  # errors, tokens, password, cache, async-handler
+│   └── modules/
+│       ├── auth/               # register, login, refresh rotation
+│       ├── users/              # list / change role / delete (with reassign)
+│       ├── projects/           # CRUD + RBAC
+│       ├── tasks/              # CRUD + status state machine + caching
+│       ├── notifications/      # persisted + SSE stream
+│       └── analytics/          # per-user overdue / done / rank
+└── frontend/                   # ── Frontend (React + Vite + RTK Query) ──
+    ├── vite.config.ts          # dev proxy → :3000
+    ├── tailwind.config.js      # dark theme
+    └── src/
+        ├── main.tsx            # router + Redux Provider
+        ├── app/                # store, RTK Query api, typed hooks
+        ├── features/
+        │   ├── auth/           # authSlice (tokens persisted to localStorage)
+        │   └── notifications/  # useSSE hook
+        ├── components/         # AppLayout, NotificationBell, Modal, RequireAuth
+        ├── pages/              # Login, Register, Board (kanban), Projects, Users, Analytics
+        └── lib/                # types, error helpers
 ```
 
 ---
