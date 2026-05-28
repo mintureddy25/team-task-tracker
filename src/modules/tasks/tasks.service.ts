@@ -2,6 +2,13 @@ import { Prisma, Role } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { NotFoundError, ForbiddenError, UnprocessableError } from '../../utils/errors';
 import { canTransition, allowedNextStates } from './status-transitions';
+import {
+  tasksByAssigneeKey,
+  tasksByAssigneePattern,
+  getCached,
+  setCached,
+  invalidatePattern,
+} from '../../utils/cache';
 import type {
   CreateTaskInput,
   UpdateTaskInput,
@@ -28,7 +35,7 @@ export async function create(user: ActingUser, input: CreateTaskInput) {
     await assertUserInOrg(input.assigneeId, user.orgId);
   }
 
-  return prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       projectId: project.id,
       title: input.title,
@@ -39,6 +46,11 @@ export async function create(user: ActingUser, input: CreateTaskInput) {
       createdById: user.id,
     },
   });
+
+  if (task.assigneeId) {
+    await invalidatePattern(tasksByAssigneePattern(task.assigneeId));
+  }
+  return task;
 }
 
 // ─────────────────────── LIST ───────────────────────
@@ -52,13 +64,28 @@ export async function list(user: ActingUser, q: ListTasksQuery) {
   if (q.status)    where.status = q.status;
   if (q.priority)  where.priority = q.priority;
 
-  if (q.assigneeId === 'me')          where.assigneeId = user.id;
+  if (q.assigneeId === 'me')              where.assigneeId = user.id;
   else if (q.assigneeId === 'unassigned') where.assigneeId = null;
-  else if (q.assigneeId)              where.assigneeId = q.assigneeId;
+  else if (q.assigneeId)                  where.assigneeId = q.assigneeId;
 
   // MEMBER can only see tasks assigned to them (per spec).
   if (user.role === 'MEMBER') {
     where.assigneeId = user.id;
+  }
+
+  // Cache only the per-assignee variant — that's the spec-required hot path.
+  // Skipping cache for org-wide listings keeps invalidation bounded.
+  const cacheableAssigneeId = typeof where.assigneeId === 'string' ? where.assigneeId : null;
+  const cacheKey = cacheableAssigneeId
+    ? tasksByAssigneeKey(cacheableAssigneeId, JSON.stringify(q))
+    : null;
+
+  if (cacheKey) {
+    const hit = await getCached<{
+      items: unknown[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(cacheKey);
+    if (hit) return hit;
   }
 
   const skip = (q.page - 1) * q.limit;
@@ -72,10 +99,15 @@ export async function list(user: ActingUser, q: ListTasksQuery) {
     prisma.task.count({ where }),
   ]);
 
-  return {
+  const result = {
     items,
     pagination: { page: q.page, limit: q.limit, total, totalPages: Math.ceil(total / q.limit) },
   };
+
+  if (cacheKey) {
+    await setCached(cacheKey, result);
+  }
+  return result;
 }
 
 // ─────────────────────── READ ONE ───────────────────────
@@ -116,7 +148,7 @@ export async function update(user: ActingUser, id: string, input: UpdateTaskInpu
     await assertUserInOrg(input.assigneeId, user.orgId);
   }
 
-  return prisma.task.update({
+  const updated = await prisma.task.update({
     where: { id },
     data: {
       title: input.title,
@@ -126,6 +158,10 @@ export async function update(user: ActingUser, id: string, input: UpdateTaskInpu
       dueDate: input.dueDate,
     },
   });
+
+  // Reassignment can touch TWO assignees — invalidate both old & new
+  await invalidateAssigneeCaches(existing.assigneeId, updated.assigneeId);
+  return updated;
 }
 
 // ─────────────────────── DELETE ───────────────────────
@@ -139,6 +175,9 @@ export async function remove(user: ActingUser, id: string) {
   }
 
   await prisma.task.delete({ where: { id: existing.id } });
+  if (existing.assigneeId) {
+    await invalidatePattern(tasksByAssigneePattern(existing.assigneeId));
+  }
 }
 
 // ─────────────────────── STATUS TRANSITION ───────────────────────
@@ -170,10 +209,20 @@ export async function changeStatus(
   const completedAt =
     input.status === 'DONE' && existing.status !== 'DONE' ? new Date() : existing.completedAt;
 
-  return prisma.task.update({
+  const updated = await prisma.task.update({
     where: { id },
     data: { status: input.status, completedAt },
   });
+
+  if (updated.assigneeId) {
+    await invalidatePattern(tasksByAssigneePattern(updated.assigneeId));
+  }
+  return updated;
+}
+
+async function invalidateAssigneeCaches(...ids: (string | null)[]) {
+  const unique = Array.from(new Set(ids.filter((x): x is string => !!x)));
+  await Promise.all(unique.map(id => invalidatePattern(tasksByAssigneePattern(id))));
 }
 
 // ─────────────────────── INTERNAL ───────────────────────
