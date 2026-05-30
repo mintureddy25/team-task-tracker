@@ -1,6 +1,9 @@
 # ─── builder ───
 FROM node:20-alpine AS builder
 
+# Prisma needs OpenSSL to generate/run its engines on Alpine (musl)
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Install deps (including dev) for building
@@ -16,6 +19,9 @@ RUN npm run build
 
 # ─── runtime ───
 FROM node:20-alpine AS runtime
+
+# Prisma migration engine needs OpenSSL at runtime too
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 ENV NODE_ENV=production

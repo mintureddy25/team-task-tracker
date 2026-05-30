@@ -1,58 +1,18 @@
-# Self-contained stack for reviewers — `docker compose up` and you're done.
+# API-only stack — uses cloud MySQL (Aiven) + Redis Cloud from .env.
+# No local DB/Redis containers needed. `docker compose up --build` and you're done.
 # API runs on http://localhost:3000  |  Swagger at http://localhost:3000/docs
 
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: ttt-mysql
-    environment:
-      MYSQL_DATABASE: tasktracker
-      MYSQL_USER: taskuser
-      MYSQL_PASSWORD: taskpass
-      MYSQL_ROOT_PASSWORD: rootpass
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-utaskuser", "-ptaskpass"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  redis:
-    image: redis:7-alpine
-    container_name: ttt-redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   api:
     build: .
     container_name: ttt-api
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    # Reads DATABASE_URL (Aiven), REDIS_URL (Redis Cloud), JWT secrets, CORS, etc. from .env
+    env_file:
+      - .env
+    # The image is a production build (dev deps like pino-pretty omitted), so force prod mode
+    # here regardless of NODE_ENV in .env (which is meant for local `npm run dev`).
     environment:
       NODE_ENV: production
-      PORT: 3000
       LOG_LEVEL: info
-      DATABASE_URL: "mysql://taskuser:taskpass@mysql:3306/tasktracker"
-      REDIS_URL: "redis://redis:6379"
-      JWT_ACCESS_SECRET: "docker-compose-access-secret-change-in-real-deploy-please"
-      JWT_REFRESH_SECRET: "docker-compose-refresh-secret-change-in-real-deploy-please"
-      JWT_ACCESS_TTL: "15m"
-      JWT_REFRESH_TTL: "7d"
-      CACHE_TTL_SECONDS: "60"
-      CORS_ORIGINS: "http://localhost:3000,http://localhost:5173"
     ports:
       - "3000:3000"
-
-volumes:
-  mysql_data:
