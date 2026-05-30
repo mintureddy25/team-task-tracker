@@ -1,27 +1,42 @@
 # Team Task Tracker API
 
-REST API + dark-themed React SPA for a team-based task tracker with multi-tenant orgs, JWT auth + refresh rotation, RBAC enforced at the middleware layer, Redis-backed caching, and real-time notifications over SSE.
+REST API + React SPA for a team-based task tracker with multi-tenant orgs, JWT auth + refresh rotation, RBAC enforced at the middleware layer, Redis-backed caching, and real-time notifications over SSE.
 
 **Backend:** Node.js · TypeScript · Express · Prisma · MySQL · Redis · Zod · Swagger · Jest · Docker
-**Frontend:** React 18 · TypeScript · Vite · Redux Toolkit + RTK Query · React Router · Tailwind CSS (dark)
+**Frontend:** React 18 · TypeScript · Vite · Redux Toolkit + RTK Query · React Router · Tailwind CSS
 
 ---
 
-## Quick start (reviewers)
+## Interface
+
+A custom "Ledger" design system — editorial drafting-paper aesthetic, Fraunces/Hanken/JetBrains-Mono type, with colour reserved for semantic task signals.
+
+![Task board](docs/screenshots/board.png)
+
+<p align="center">
+  <img src="docs/screenshots/analytics.png" width="49%" alt="Analytics — per-user aggregates" />
+  <img src="docs/screenshots/login.png" width="49%" alt="Sign in" />
+</p>
+
+---
+
+## Quick start
+
+This stack uses **cloud-hosted MySQL + Redis** (e.g. Aiven, Redis Cloud), so Docker runs only the API.
 
 ```bash
+cp .env.example .env
+# edit .env — set DATABASE_URL and REDIS_URL to your own cloud MySQL + Redis
 docker compose up --build
 ```
 
-That's the entire setup. The stack boots three services:
+Docker builds and runs a single service:
 
 | Service | Port | Purpose |
 |---|---|---|
-| `api`   | 3000 | Express API (runs `prisma migrate deploy` on first boot, then starts) |
-| `mysql` | 3306 | MySQL 8.4 with the `tasktracker` DB pre-created |
-| `redis` | 6379 | Cache + SSE pub/sub backplane |
+| `api`   | 3000 | Express API (runs `prisma migrate deploy` on boot, then starts) — reads `DATABASE_URL`/`REDIS_URL` from `.env` |
 
-The API container waits on `mysql` and `redis` healthchecks before starting, so the first run is race-free.
+The `tasktracker` database must already exist on your MySQL host; `migrate deploy` creates the tables.
 
 Once it's up:
 
@@ -169,7 +184,7 @@ node scripts/cache-inspect.mjs "tasks:assignee:<userId>:*"
 
 ## Real-time notifications
 
-Uses **SSE** (Server-Sent Events), not WebSocket — because notifications are server-push only, and `EventSource` gives us auto-reconnect for free without the socket.io dependency.
+Uses **SSE** (Server-Sent Events), not WebSocket — because notifications are server-push only, so a full-duplex socket (and the socket.io dependency) would be overkill.
 
 **Flow:**
 1. Task status changes or task is assigned → API persists a row in `notifications`
@@ -179,12 +194,16 @@ Uses **SSE** (Server-Sent Events), not WebSocket — because notifications are s
 
 If the user is offline, the push is lost — but the notification is still in the DB, so a subsequent `GET /notifications` returns it. The pub/sub is the real-time hint; MySQL is the source of truth.
 
-**Client example:**
+**Auth:** the JWT is sent in an `Authorization: Bearer` header, not in the URL. The native `EventSource` API can't set headers, so the React client streams over `fetch` + `ReadableStream` instead (parsing the `text/event-stream` frames manually, the same idiom the OpenAI/Anthropic streaming clients use) and reconnects with a 3s backoff. This keeps access tokens out of server/proxy logs and browser history. The endpoint also accepts a `?token=` query param as a fallback for raw `EventSource`/`curl` clients.
+
+**Client example (fetch streaming, header auth):**
 
 ```js
-const es = new EventSource(`/notifications/stream?token=${accessToken}`);
-es.addEventListener('connected',    e => console.log('online'));
-es.addEventListener('notification', e => console.log('notif:', JSON.parse(e.data)));
+const res = await fetch('/notifications/stream', {
+  headers: { Authorization: `Bearer ${accessToken}`, Accept: 'text/event-stream' },
+});
+const reader = res.body.getReader();
+// → read(), split frames on "\n\n", parse `event:`/`data:` lines
 ```
 
 ---
@@ -231,15 +250,16 @@ See [`docs/FUTURE_WORK.md`](./docs/FUTURE_WORK.md) for the full list. Highlights
 2. **Message queue (RabbitMQ or Kafka) alongside Redis pub/sub.** Redis stays for low-latency real-time UI; the queue handles "must eventually run" workloads — notification email digests, due-date reminder cron, webhook delivery to external integrations.
 3. **Immutable audit log table** that survives even hard deletes — required for compliance.
 4. **Per-user rate limiting** (express-rate-limit + Redis store).
-5. **Distributed tracing** (OpenTelemetry → Jaeger) so request paths through middleware/service/DB are observable.
-6. **Drag-and-drop kanban** on the task board (currently uses a status dropdown per card).
-7. **Comments, attachments, full-text search** (Meilisearch) on tasks.
+5. **Harden token storage to `httpOnly` cookies.** The SPA currently keeps the JWT in `localStorage` and sends it as a `Bearer` header (consistent across REST + the fetch-based SSE stream — no tokens in URLs). `localStorage` is readable by JavaScript, so it's exposed to XSS token theft. The production-grade move is `httpOnly` + `Secure` + `SameSite` cookies that JS can't read, paired with CSRF protection and CORS `credentials` — I kept Bearer here to stay consistent and avoid a half-migrated auth model under the time box. For SSE specifically I'd also issue single-use, short-TTL stream tickets rather than reusing the access token.
+6. **Distributed tracing** (OpenTelemetry → Jaeger) so request paths through middleware/service/DB are observable.
+7. **Drag-and-drop kanban** on the task board (currently uses a status dropdown per card).
+8. **Comments, attachments, full-text search** (Meilisearch) on tasks.
 
 ---
 
 ## Local development (without Docker)
 
-If you want to develop without the docker MySQL/Redis (e.g., using cloud DBs):
+To run the API directly with Node (no Docker), against the same cloud DB/Redis:
 
 ```bash
 npm install
@@ -257,7 +277,7 @@ Then the server hot-reloads on changes.
 
 ```
 team-task-tracker/
-├── docker-compose.yml          # mysql + redis + api
+├── docker-compose.yml          # api only (cloud MySQL + Redis via .env)
 ├── Dockerfile                  # multi-stage build
 ├── prisma/
 │   ├── schema.prisma           # source of truth
