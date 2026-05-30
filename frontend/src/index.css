@@ -2,31 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────────────────
+   LEDGER — an editorial drafting-paper design system.
+   Ink on warm bone, Fraunces display + Hanken body + JetBrains
+   Mono for data. Colour is reserved for semantic signals only.
+   ─────────────────────────────────────────────────────────── */
+
 @layer base {
   html, body, #root { height: 100%; }
-  html { color-scheme: dark; }
+  html { color-scheme: light; }
+
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    @apply bg-paper text-ink antialiased font-sans;
+    font-feature-settings: 'ss01', 'cv05';
+    /* Faint engineering dot-grid — atmosphere without noise. */
+    background-image: radial-gradient(rgba(26, 25, 22, 0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
   }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection { background: #1a1916; color: #f4f1e9; }
+
+  /* Thin, ink-tinted scrollbars. */
+  * { scrollbar-width: thin; scrollbar-color: #cbc4b2 transparent; }
+  *::-webkit-scrollbar { width: 9px; height: 9px; }
+  *::-webkit-scrollbar-thumb {
+    background: #cbc4b2; border-radius: 9px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: #b3aa95; }
 }
 
 @layer components {
+  /* ── Buttons ─────────────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium
-           transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/50
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-card px-3.5 py-2 text-sm font-medium
+           transition-all duration-150 select-none
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-offset-2
+           focus-visible:ring-offset-paper disabled:opacity-40 disabled:cursor-not-allowed;
   }
-  .btn-primary { @apply btn bg-brand-500 hover:bg-brand-600 text-white; }
-  .btn-secondary { @apply btn bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700; }
-  .btn-danger { @apply btn bg-red-600/90 hover:bg-red-600 text-white; }
-  .btn-ghost { @apply btn hover:bg-slate-800 text-slate-300; }
+  /* Ink fill — the one "loud" element, kept monochrome on purpose. */
+  .btn-primary {
+    @apply btn bg-ink text-paper shadow-card hover:-translate-y-0.5 hover:shadow-card-hover
+           active:translate-y-0 active:shadow-none;
+  }
+  .btn-secondary {
+    @apply btn bg-bone text-ink border border-line-strong hover:border-ink hover:-translate-y-0.5;
+  }
+  .btn-danger {
+    @apply btn bg-signal-brick text-paper shadow-card hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-ink hover:bg-ink/[0.05];
+  }
+
+  /* ── Form controls ───────────────────────────────────── */
   .input {
-    @apply w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm
-           text-slate-100 placeholder:text-slate-500
-           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500;
+    @apply w-full rounded-card bg-bone border border-line-strong px-3 py-2 text-sm text-ink
+           placeholder:text-faint transition-colors
+           focus:outline-none focus:border-ink focus:ring-2 focus:ring-ink/10;
   }
-  .label { @apply block text-xs font-medium text-slate-400 mb-1.5; }
-  .card { @apply rounded-xl bg-slate-900 border border-slate-800 p-4; }
-  .chip { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+  .label {
+    @apply block font-mono text-[11px] uppercase tracking-[0.12em] text-muted mb-1.5;
+  }
+
+  /* ── Surfaces ────────────────────────────────────────── */
+  .card {
+    @apply rounded-card bg-bone border border-line p-4 shadow-card;
+  }
+
+  /* Mono section eyebrow, e.g. "01 — BOARD" */
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.22em] text-faint;
+  }
+
+  /* ── Chips: tinted ground + darker ink of the same hue ── */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono text-[11px]
+           font-medium uppercase tracking-[0.06em] whitespace-nowrap;
+  }
+  .chip-stone  { @apply bg-signal-stone/[0.12]  text-signal-stone; }
+  .chip-cobalt { @apply bg-signal-cobalt/[0.12] text-signal-cobalt; }
+  .chip-ochre  { @apply bg-signal-ochre/[0.14]  text-signal-ochre; }
+  .chip-moss   { @apply bg-signal-moss/[0.14]   text-signal-moss; }
+  .chip-brick  { @apply bg-signal-brick/[0.12]  text-signal-brick; }
+  .chip-ink    { @apply bg-ink text-paper; }
+
+  /* Small status dot */
+  .dot { @apply inline-block w-1.5 h-1.5 rounded-full; }
+}
+
+@layer utilities {
+  /* Staggered page-load reveal helper. */
+  .reveal { @apply animate-fade-up; }
+
+  /* Hairline rule with a touch of warmth. */
+  .rule { @apply border-line; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

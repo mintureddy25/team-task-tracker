@@ -22,7 +22,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your organization" subtitle="You'll be the first ADMIN">
+    <AuthLayout title="Create your organization" subtitle="You'll be the first ADMIN.">
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="label">Organization name</label>
@@ -59,9 +59,9 @@ export default function RegisterPage() {
         <button type="submit" disabled={isLoading} className="btn-primary w-full">
           {isLoading ? 'Creating…' : 'Create organization'}
         </button>
-        <p className="text-sm text-slate-400 text-center">
+        <p className="text-sm text-muted text-center pt-1">
           Already have an account?{' '}
-          <Link to="/login" className="text-brand-400 hover:text-brand-300">
+          <Link to="/login" className="text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
             Sign in
           </Link>
         </p>

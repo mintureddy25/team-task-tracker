@@ -22,7 +22,15 @@ createRoot(document.getElementById('root')!).render(
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155' },
+            style: {
+              background: '#1a1916',
+              color: '#f4f1e9',
+              border: '1px solid #3d3a33',
+              borderRadius: '4px',
+              fontSize: '13px',
+              fontFamily: '"Hanken Grotesk", system-ui, sans-serif',
+              boxShadow: '4px 4px 0 0 rgba(26, 25, 22, 0.15)',
+            },
           }}
         />
         <Routes>

@@ -40,48 +40,55 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Users</h1>
-        <button onClick={() => setShowInvite(true)} className="btn-primary">+ Invite User</button>
-      </div>
+    <div className="space-y-6">
+      <header className="flex items-end justify-between gap-3 flex-wrap animate-fade-up">
+        <div>
+          <div className="eyebrow">03 — Organization</div>
+          <h1 className="font-display text-4xl text-ink mt-1">Users</h1>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-faint mt-2">
+            {data?.items.length ?? 0} member{(data?.items.length ?? 0) === 1 ? '' : 's'}
+          </p>
+        </div>
+        <button onClick={() => setShowInvite(true)} className="btn-primary"><span className="text-base leading-none">+</span> Invite User</button>
+      </header>
 
-      <div className="card p-0 overflow-hidden">
+      <div className="bg-bone border border-line rounded-card shadow-card overflow-hidden animate-fade-up"
+           style={{ animationDelay: '60ms' }}>
         <table className="w-full text-sm">
-          <thead className="bg-slate-900/50 text-xs text-slate-400 uppercase">
-            <tr>
-              <th className="text-left px-4 py-3">Name</th>
-              <th className="text-left px-4 py-3">Email</th>
-              <th className="text-left px-4 py-3">Role</th>
-              <th className="text-left px-4 py-3">Joined</th>
-              <th className="text-right px-4 py-3">Actions</th>
+          <thead>
+            <tr className="border-b border-line-strong">
+              <th className="text-left px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Name</th>
+              <th className="text-left px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Email</th>
+              <th className="text-left px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Role</th>
+              <th className="text-left px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Joined</th>
+              <th className="text-right px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {data?.items.map(u => {
               const isSelf = u.id === me.id;
               return (
-                <tr key={u.id} className="border-t border-slate-800 hover:bg-slate-900/40">
-                  <td className="px-4 py-3 font-medium">{u.name}{isSelf && <span className="ml-2 text-xs text-slate-500">(you)</span>}</td>
-                  <td className="px-4 py-3 text-slate-400">{u.email}</td>
-                  <td className="px-4 py-3">
+                <tr key={u.id} className="border-t border-line hover:bg-ink/[0.02] transition-colors">
+                  <td className="px-5 py-3.5 font-medium text-ink">{u.name}{isSelf && <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-faint">(you)</span>}</td>
+                  <td className="px-5 py-3.5 font-mono text-xs text-muted">{u.email}</td>
+                  <td className="px-5 py-3.5">
                     <select
                       value={u.role}
                       disabled={isSelf}
                       onChange={e => onChangeRole(u, e.target.value as Role)}
-                      className={clsx('input py-1 text-xs w-32', isSelf && 'cursor-not-allowed')}
+                      className={clsx('input py-1 text-xs w-32 font-mono', isSelf && 'cursor-not-allowed opacity-60')}
                     >
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">
+                  <td className="px-5 py-3.5 font-mono text-[11px] uppercase tracking-wide text-faint">
                     {u.createdAt && formatDistanceToNow(new Date(u.createdAt), { addSuffix: true })}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-5 py-3.5 text-right">
                     <button
                       onClick={() => onDelete(u)}
                       disabled={isSelf}
-                      className="btn-ghost text-red-400 hover:text-red-300 text-xs disabled:opacity-30"
+                      className="btn-ghost text-signal-brick hover:bg-signal-brick/[0.08] text-xs disabled:opacity-25"
                     >
                       Delete
                     </button>
@@ -148,7 +155,7 @@ function InviteModal({
             {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        <div className="flex gap-2 justify-end pt-2">
+        <div className="flex gap-2 justify-end pt-3 border-t border-line mt-1">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={loading} className="btn-primary">
             {loading ? 'Inviting…' : 'Invite'}

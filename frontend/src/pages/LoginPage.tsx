@@ -21,7 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to your Task Tracker workspace">
+    <AuthLayout title="Welcome back" subtitle="Sign in to your workspace.">
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="label">Email</label>
@@ -42,9 +42,9 @@ export default function LoginPage() {
         <button type="submit" disabled={isLoading} className="btn-primary w-full">
           {isLoading ? 'Signing in…' : 'Sign in'}
         </button>
-        <p className="text-sm text-slate-400 text-center">
+        <p className="text-sm text-muted text-center pt-1">
           New here?{' '}
-          <Link to="/register" className="text-brand-400 hover:text-brand-300">
+          <Link to="/register" className="text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
             Create an organization
           </Link>
         </p>
@@ -59,16 +59,33 @@ export function AuthLayout({
   title: string; subtitle: string; children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500/20 mb-3">
-            <span className="text-brand-400 font-bold text-xl">T</span>
+    <div className="min-h-screen grid place-items-center p-4">
+      <div className="w-full max-w-md animate-fade-up">
+        {/* Masthead */}
+        <div className="mb-7">
+          <div className="eyebrow text-faint">Task&nbsp;Tracker</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <h1 className="font-display text-5xl leading-none tracking-tight text-ink">
+              Ledger<span className="text-signal-ochre">.</span>
+            </h1>
           </div>
-          <h1 className="text-2xl font-semibold">{title}</h1>
-          <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
+          <div className="mt-4 flex items-center gap-3">
+            <span className="h-px w-8 bg-ink" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+              {subtitle}
+            </p>
+          </div>
         </div>
-        <div className="card">{children}</div>
+
+        {/* Form card */}
+        <div className="bg-bone border border-line-strong rounded-card shadow-card p-6">
+          <h2 className="font-display text-2xl text-ink mb-5">{title}</h2>
+          {children}
+        </div>
+
+        <p className="mt-5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-faint">
+          Multi-tenant · JWT · RBAC · Redis
+        </p>
       </div>
     </div>
   );

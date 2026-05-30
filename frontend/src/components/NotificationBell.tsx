@@ -38,19 +38,20 @@ export default function NotificationBell() {
           <path d="M10 21a2 2 0 0 0 4 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute top-1 right-1 min-w-[18px] h-[18px] grid place-items-center
-                           rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+          <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] grid place-items-center
+                           rounded-full bg-signal-brick text-paper font-mono text-[10px] font-semibold px-1">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] card shadow-2xl z-30 p-0">
-          <div className="flex items-center justify-between p-3 border-b border-slate-800">
-            <h3 className="font-semibold text-sm">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-bone border border-line-strong
+                        rounded-card shadow-pop z-30 overflow-hidden animate-pop-in">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+            <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Notifications</h3>
             {unread > 0 && (
-              <button onClick={() => markAll()} className="text-xs text-brand-400 hover:text-brand-300">
+              <button onClick={() => markAll()} className="font-mono text-[11px] uppercase tracking-wider text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
                 Mark all read
               </button>
             )}
@@ -58,8 +59,8 @@ export default function NotificationBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 && (
-              <div className="p-6 text-center text-sm text-slate-500">
-                You're all caught up
+              <div className="px-6 py-10 text-center text-sm text-faint font-display italic">
+                You're all caught up.
               </div>
             )}
             {items.map(n => (
@@ -76,23 +77,22 @@ function NotificationRow({ notif, onClick }: { notif: Notification; onClick: () 
   const p = notif.payload as { taskTitle?: string; from?: string; to?: string };
   const text =
     notif.type === 'TASK_ASSIGNED'
-      ? <>Assigned to you: <strong>{p.taskTitle}</strong></>
+      ? <>Assigned to you: <strong className="font-semibold">{p.taskTitle}</strong></>
       : notif.type === 'TASK_STATUS_CHANGED'
-        ? <><strong>{p.taskTitle}</strong> moved {p.from} → {p.to}</>
-        : <><strong>{p.taskTitle}</strong> due soon</>;
+        ? <><strong className="font-semibold">{p.taskTitle}</strong> moved {p.from} → {p.to}</>
+        : <><strong className="font-semibold">{p.taskTitle}</strong> due soon</>;
 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors
-                 ${notif.readAt ? 'opacity-60' : 'bg-slate-900/50'}`}
+      className={`w-full text-left px-4 py-3 border-b border-line/60 hover:bg-ink/[0.03] transition-colors
+                 ${notif.readAt ? 'opacity-55' : ''}`}
     >
       <div className="flex items-start gap-3">
-        <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0
-                          ${notif.readAt ? 'bg-slate-600' : 'bg-brand-400'}`} />
+        <span className={`dot mt-1.5 flex-shrink-0 ${notif.readAt ? 'bg-faint' : 'bg-signal-ochre'}`} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-200">{text}</p>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-sm text-ink-soft leading-snug">{text}</p>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-faint mt-1">
             {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
           </p>
         </div>
