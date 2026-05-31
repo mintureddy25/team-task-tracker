@@ -14,8 +14,8 @@ import type { Notification } from '../../lib/types';
  *   EventSource cannot send custom headers, which would force the JWT into the
  *   URL (?token=...) where it leaks into server/proxy logs and browser history.
  *   We stream over fetch + ReadableStream instead, so the access token rides in
- *   an `Authorization: Bearer` header — the same idiom the OpenAI/Anthropic
- *   streaming clients use. fetch doesn't auto-reconnect, so we reconnect here.
+ *   an `Authorization: Bearer` header and never touches the URL. fetch doesn't
+ *   auto-reconnect like EventSource, so we handle reconnection ourselves.
  */
 export function useSSE() {
   const dispatch = useAppDispatch();

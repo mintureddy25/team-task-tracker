@@ -22,21 +22,19 @@ A custom "Ledger" design system — editorial drafting-paper aesthetic, Fraunces
 
 ## Quick start
 
-This stack uses **cloud-hosted MySQL + Redis** (e.g. Aiven, Redis Cloud), so Docker runs only the API.
-
 ```bash
-cp .env.example .env
-# edit .env — set DATABASE_URL and REDIS_URL to your own cloud MySQL + Redis
 docker compose up --build
 ```
 
-Docker builds and runs a single service:
+That's the entire setup — **no `.env`, no manual steps**. The stack boots three services:
 
 | Service | Port | Purpose |
 |---|---|---|
-| `api`   | 3000 | Express API (runs `prisma migrate deploy` on boot, then starts) — reads `DATABASE_URL`/`REDIS_URL` from `.env` |
+| `api`   | 3000 | Express API (runs `prisma migrate deploy` on first boot, then starts) |
+| `mysql` | 3306 | MySQL 8.4 with the `tasktracker` DB pre-created |
+| `redis` | 6379 | Cache + SSE pub/sub backplane |
 
-The `tasktracker` database must already exist on your MySQL host; `migrate deploy` creates the tables.
+The API container waits on the `mysql` and `redis` healthchecks before starting, so the first run is race-free.
 
 Once it's up:
 
@@ -70,17 +68,19 @@ npm run preview         # serves dist/ on :4173
 ## Architecture overview
 
 ```
-┌────────────────┐    HTTP     ┌──────────────────────────┐
-│  Browser/API   │ ──────────▶ │   Express + TS  (api)    │
-│   consumer     │             │                          │
-│                │ ◀ SSE ───── │  ┌──── Prisma client ──┐ │       ┌─────────┐
-└────────────────┘             │  │                      │─┼─────▶│ MySQL 8 │
-                               │  └──────────────────────┘ │      └─────────┘
-                               │  ┌──── ioredis ─────────┐ │       ┌─────────┐
-                               │  │ cache + pub/sub      │─┼─────▶│  Redis  │
-                               │  └──────────────────────┘ │      └─────────┘
+┌────────────────┐    HTTP     ┌──────────────────────────┐       ┌─────────┐
+│  Browser/API   │ ──────────▶ │   Express + TS  (api)    │       │ MySQL 8 │
+│   consumer     │             │                          │       │         │
+│                │ ◀ SSE ───── │  ┌──── Prisma client ──┐ │──────▶│         │
+└────────────────┘             │  │                      │ │       └─────────┘
+                               │  └──────────────────────┘ │       ┌─────────┐
+                               │  ┌──── ioredis ─────────┐ │       │  Redis  │
+                               │  │ cache + pub/sub      │─┼──────▶│         │
+                               │  └──────────────────────┘ │       └─────────┘
                                └──────────────────────────┘
 ```
+
+`docker compose up` bundles all three as containers (`api`, `mysql`, `redis`). For local `npm run dev`, point `DATABASE_URL`/`REDIS_URL` at any MySQL/Redis — local **or** a managed cloud service (Aiven, Redis Cloud).
 
 Each request → JWT middleware → RBAC middleware → Zod validation middleware → controller → service → Prisma. Errors bubble up to a single global error filter that emits the consistent `{status, code, message, details?}` shape.
 
@@ -189,12 +189,12 @@ Uses **SSE** (Server-Sent Events), not WebSocket — because notifications are s
 **Flow:**
 1. Task status changes or task is assigned → API persists a row in `notifications`
 2. API publishes the notification JSON to Redis channel `notifications:{userId}`
-3. Each connected SSE client has its own Redis subscriber on that channel
-4. On Redis `message` → client receives an `event: notification` chunk
+3. A single shared Redis subscriber fans messages out to the connected SSE clients (an in-memory `channel → clients` map), so the Redis connection count stays constant regardless of how many clients/tabs connect
+4. On Redis `message` → matching clients receive an `event: notification` chunk
 
 If the user is offline, the push is lost — but the notification is still in the DB, so a subsequent `GET /notifications` returns it. The pub/sub is the real-time hint; MySQL is the source of truth.
 
-**Auth:** the JWT is sent in an `Authorization: Bearer` header, not in the URL. The native `EventSource` API can't set headers, so the React client streams over `fetch` + `ReadableStream` instead (parsing the `text/event-stream` frames manually, the same idiom the OpenAI/Anthropic streaming clients use) and reconnects with a 3s backoff. This keeps access tokens out of server/proxy logs and browser history. The endpoint also accepts a `?token=` query param as a fallback for raw `EventSource`/`curl` clients.
+**Auth:** the JWT is sent in an `Authorization: Bearer` header, not in the URL. The native `EventSource` API can't set headers, so the React client streams over `fetch` + `ReadableStream` instead (parsing the `text/event-stream` frames manually) and reconnects with a 3s backoff. This keeps access tokens out of server/proxy logs and browser history. The endpoint also accepts a `?token=` query param as a fallback for raw `EventSource`/`curl` clients.
 
 **Client example (fetch streaming, header auth):**
 
@@ -242,6 +242,18 @@ Prisma errors (P2002, P2003, P2025) are mapped to human-friendly codes so client
 
 ---
 
+## Tradeoffs & intentional omissions
+
+Conscious calls made under the time box (the brief asks for these to be documented):
+
+1. **No rate limiting (intentional).** Left out so the API can be exercised freely during review — load tests, the seed scripts, and the integration tests all hammer the endpoints without being throttled. In production I'd add `express-rate-limit` backed by a Redis store: strict per-IP limits on the auth routes (brute-force defence) and looser per-user limits elsewhere. Listed under *What I'd add given more time*.
+
+2. **Immediate hard delete, not a full two-stage soft delete.** Deletes remove the row now — users reassign their tasks/projects to the actor first, projects cascade to their tasks, and notifications keep `taskId` via `SET NULL`. A `deletedAt` soft-delete only earns its cost once paired with a Trash/restore UI and a retention cron; without those it's pure overhead (every query needs `WHERE deletedAt IS NULL`, and MySQL can't do partial unique indexes for `(orgId, email)`). So the complete soft-delete → Trash → retention/GDPR-anonymization flow was deferred. See *Deletion strategy* below.
+
+3. **JWT in `localStorage` + `Authorization: Bearer`, not `httpOnly` cookies.** Consistent across REST and the fetch-based SSE stream (so the token never lands in a URL/log), but `localStorage` is readable by JS and thus exposed to XSS. The hardening — moving the **refresh token** into an `httpOnly` + `Secure` + `SameSite` cookie (with CSRF protection) and issuing single-use, short-TTL tickets for the SSE stream — is documented as the next step rather than half-implemented.
+
+---
+
 ## What I'd add given more time
 
 See [`docs/FUTURE_WORK.md`](./docs/FUTURE_WORK.md) for the full list. Highlights:
@@ -259,12 +271,13 @@ See [`docs/FUTURE_WORK.md`](./docs/FUTURE_WORK.md) for the full list. Highlights
 
 ## Local development (without Docker)
 
-To run the API directly with Node (no Docker), against the same cloud DB/Redis:
+To run the API directly with Node (with hot reload). `.env.example` defaults point at
+the docker-compose MySQL/Redis, but you can edit them to use any local or cloud instance:
 
 ```bash
+docker compose up -d mysql redis   # or bring your own / point .env at a cloud DB
 npm install
-cp .env.example .env
-# edit .env to point DATABASE_URL/REDIS_URL at your own DB/Redis
+cp .env.example .env               # edit DATABASE_URL/REDIS_URL if not using the compose DB
 npx prisma migrate dev
 npm run dev
 ```
@@ -277,7 +290,7 @@ Then the server hot-reloads on changes.
 
 ```
 team-task-tracker/
-├── docker-compose.yml          # api only (cloud MySQL + Redis via .env)
+├── docker-compose.yml          # self-contained: mysql + redis + api
 ├── Dockerfile                  # multi-stage build
 ├── prisma/
 │   ├── schema.prisma           # source of truth
