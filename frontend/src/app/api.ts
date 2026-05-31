@@ -97,7 +97,8 @@ export const api = createApi({
       { email: string; password: string; name: string; role: import('../lib/types').Role }
     >({
       query: body => ({ url: '/auth/invite', method: 'POST', body }),
-      invalidatesTags: ['Users'],
+      // New member appears as a (zero-task) row in Analytics.
+      invalidatesTags: ['Users', 'Analytics'],
     }),
     logout: builder.mutation<void, void>({
       queryFn: async (_arg, api) => {
@@ -131,11 +132,13 @@ export const api = createApi({
       { id: string; role: import('../lib/types').Role }
     >({
       query: ({ id, role }) => ({ url: `/users/${id}/role`, method: 'PATCH', body: { role } }),
-      invalidatesTags: ['Users'],
+      // Role is displayed in the Analytics table.
+      invalidatesTags: ['Users', 'Analytics'],
     }),
     deleteUser: builder.mutation<void, string>({
       query: id => ({ url: `/users/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Users', 'Tasks', 'Projects'],
+      // Removing a user reassigns their tasks/projects and changes every aggregate.
+      invalidatesTags: ['Users', 'Tasks', 'Projects', 'Analytics', 'Notifications'],
     }),
 
     // ─── projects ───
@@ -166,7 +169,8 @@ export const api = createApi({
     }),
     deleteProject: builder.mutation<void, string>({
       query: id => ({ url: `/projects/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Projects', 'Tasks'],
+      // Cascade-deletes child tasks, so per-user aggregates shift too.
+      invalidatesTags: ['Projects', 'Tasks', 'Analytics'],
     }),
 
     // ─── tasks ───
@@ -200,7 +204,8 @@ export const api = createApi({
       }
     >({
       query: body => ({ url: '/tasks', method: 'POST', body }),
-      invalidatesTags: ['Tasks'],
+      // A new task shifts per-user counts (Analytics) and may notify the assignee.
+      invalidatesTags: ['Tasks', 'Analytics', 'Notifications'],
     }),
     updateTask: builder.mutation<
       import('../lib/types').Task,
@@ -214,7 +219,8 @@ export const api = createApi({
       }
     >({
       query: ({ id, ...body }) => ({ url: `/tasks/${id}`, method: 'PATCH', body }),
-      invalidatesTags: (_r, _e, { id }) => ['Tasks', { type: 'Task', id }],
+      // Priority/assignee/due-date edits change overdue + per-user aggregates.
+      invalidatesTags: (_r, _e, { id }) => ['Tasks', { type: 'Task', id }, 'Analytics'],
     }),
     changeTaskStatus: builder.mutation<
       import('../lib/types').Task,
@@ -225,11 +231,12 @@ export const api = createApi({
         method: 'PATCH',
         body: { status },
       }),
-      invalidatesTags: (_r, _e, { id }) => ['Tasks', { type: 'Task', id }],
+      // Status drives open/done/avg-completion in Analytics and notifies the assignee.
+      invalidatesTags: (_r, _e, { id }) => ['Tasks', { type: 'Task', id }, 'Analytics', 'Notifications'],
     }),
     deleteTask: builder.mutation<void, string>({
       query: id => ({ url: `/tasks/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Tasks'],
+      invalidatesTags: ['Tasks', 'Analytics'],
     }),
 
     // ─── notifications ───
