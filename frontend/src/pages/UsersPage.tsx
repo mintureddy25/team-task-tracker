@@ -10,6 +10,7 @@ import {
   useDeleteUserMutation,
 } from '../app/api';
 import Modal from '../components/Modal';
+import { useConfirm } from '../components/confirm-context';
 import { extractErrorMessage } from '../lib/errors';
 import { ROLES, type Role, type User } from '../lib/types';
 
@@ -20,6 +21,7 @@ export default function UsersPage() {
   const [updateRole] = useUpdateUserRoleMutation();
   const [deleteUser] = useDeleteUserMutation();
   const [showInvite, setShowInvite] = useState(false);
+  const confirm = useConfirm();
 
   async function onChangeRole(u: User, role: Role) {
     try {
@@ -30,7 +32,13 @@ export default function UsersPage() {
     }
   }
   async function onDelete(u: User) {
-    if (!confirm(`Delete ${u.name}? Their tasks/projects will be reassigned to you.`)) return;
+    const ok = await confirm({
+      title: 'Delete user',
+      message: <>Delete <strong className="font-semibold">{u.name}</strong>? Their tasks and projects will be reassigned to you.</>,
+      confirmText: 'Delete user',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteUser(u.id).unwrap();
       toast.success('User deleted');

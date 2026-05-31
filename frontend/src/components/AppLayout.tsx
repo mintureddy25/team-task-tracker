@@ -88,7 +88,7 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header / masthead */}
-        <header className="h-16 bg-paper/80 backdrop-blur-sm border-b border-line px-8 flex items-center justify-between shrink-0">
+        <header className="relative z-40 h-16 bg-paper/80 backdrop-blur-sm border-b border-line px-8 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 text-sm text-muted">
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Signed in</span>
             <span className="font-medium text-ink">{user.name}</span>

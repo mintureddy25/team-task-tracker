@@ -9,6 +9,7 @@ import {
   useDeleteProjectMutation,
 } from '../app/api';
 import Modal from '../components/Modal';
+import { useConfirm } from '../components/confirm-context';
 import { extractErrorMessage } from '../lib/errors';
 import type { Project } from '../lib/types';
 
@@ -19,9 +20,16 @@ export default function ProjectsPage() {
   const [editing, setEditing] = useState<Project | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleteProject] = useDeleteProjectMutation();
+  const confirm = useConfirm();
 
   async function onDelete(p: Project) {
-    if (!confirm(`Delete "${p.name}"? All its tasks will also be removed.`)) return;
+    const ok = await confirm({
+      title: 'Delete project',
+      message: <>Delete <strong className="font-semibold">“{p.name}”</strong>? All of its tasks will be permanently removed too.</>,
+      confirmText: 'Delete project',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteProject(p.id).unwrap();
       toast.success('Project deleted');

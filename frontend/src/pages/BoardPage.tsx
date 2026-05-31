@@ -12,6 +12,7 @@ import {
   useDeleteTaskMutation,
 } from '../app/api';
 import Modal from '../components/Modal';
+import { useConfirm } from '../components/confirm-context';
 import {
   type Task, type TaskStatus, type Priority,
   TASK_STATUSES, PRIORITIES,
@@ -153,6 +154,7 @@ function Column({ status, tasks, users }: { status: TaskStatus; tasks: Task[]; u
 
 function TaskCard({ task, users }: { task: Task; users: { id: string; name: string }[] }) {
   const me = useAppSelector(s => s.auth.user);
+  const confirm = useConfirm();
   const [changeStatus] = useChangeTaskStatusMutation();
   const [deleteTask] = useDeleteTaskMutation();
 
@@ -170,7 +172,13 @@ function TaskCard({ task, users }: { task: Task; users: { id: string; name: stri
     }
   }
   async function onDelete() {
-    if (!confirm(`Delete "${task.title}"?`)) return;
+    const ok = await confirm({
+      title: 'Delete task',
+      message: <>Delete <strong className="font-semibold">“{task.title}”</strong>? This can’t be undone.</>,
+      confirmText: 'Delete task',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTask(task.id).unwrap();
       toast.success('Task deleted');

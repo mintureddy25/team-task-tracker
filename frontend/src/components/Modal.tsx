@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Modal({
   open, onClose, title, children,
@@ -10,14 +11,27 @@ export default function Modal({
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
-    if (open) document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    if (open) {
+      document.addEventListener('keydown', onKey);
+      // Lock background scroll while the dialog is open.
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.removeEventListener('keydown', onKey);
+        document.body.style.overflow = prev;
+      };
+    }
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm p-4 animate-fade-in"
-         onClick={onClose}>
+
+  // Portal to <body> so the fixed overlay is sized to the viewport — never
+  // trapped by a transformed/blurred ancestor's containing block.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center bg-ink/40 backdrop-blur-sm p-4 animate-fade-in"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg bg-bone border border-line-strong rounded-card shadow-pop p-6 animate-pop-in"
         onClick={e => e.stopPropagation()}
@@ -32,6 +46,7 @@ export default function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

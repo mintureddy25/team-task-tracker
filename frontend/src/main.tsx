@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { store } from './app/store';
+import { ConfirmProvider } from './components/ConfirmDialog';
 import './index.css';
 
 import LoginPage from './pages/LoginPage';
@@ -19,6 +20,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
       <BrowserRouter>
+       <ConfirmProvider>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -69,6 +71,7 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+       </ConfirmProvider>
       </BrowserRouter>
     </Provider>
   </StrictMode>,
