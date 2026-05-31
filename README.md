@@ -9,7 +9,8 @@ REST API + React SPA for a team-based task tracker with multi-tenant orgs, JWT a
 
 | | |
 |---|---|
-| **Live app** | https://tasktracker.saitejareddy.online |
+| **Live app (frontend)** | https://tasktracker.saitejareddy.online |
+| **Live API (backend)** | https://task.saitejareddy.online |
 | **API + Swagger docs** | https://task.saitejareddy.online/docs |
 | **Health check** | https://task.saitejareddy.online/health |
 
