@@ -47,7 +47,8 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-bone border border-line-strong
-                        rounded-card shadow-pop z-50 overflow-hidden animate-pop-in">
+                        rounded-card shadow-pop z-50 overflow-hidden animate-pop-in
+                        max-sm:fixed max-sm:inset-x-3 max-sm:top-[4.25rem] max-sm:mt-0 max-sm:w-auto max-sm:max-w-none">
           <div className="flex items-center justify-between px-4 py-3 border-b border-line">
             <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">Notifications</h3>
             {unread > 0 && (
