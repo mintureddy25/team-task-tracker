@@ -11,7 +11,8 @@ import { logout, setTokens, setCredentials } from '../features/auth/authSlice';
 import type { RootState } from './store';
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: '/api',
+  // Dev: '/api' → Vite proxy strips the prefix → backend. Prod: absolute API base.
+  baseUrl: import.meta.env.VITE_API_URL || '/api',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.accessToken;
     if (token) headers.set('authorization', `Bearer ${token}`);

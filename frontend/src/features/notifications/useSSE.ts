@@ -59,8 +59,9 @@ export function useSSE() {
 
     const connect = async () => {
       try {
-        // Vite dev server proxies /notifications/stream → :3000
-        const res = await fetch('/notifications/stream', {
+        // Dev: relative URL → Vite proxy. Prod: absolute API base (VITE_API_URL).
+        const apiBase = import.meta.env.VITE_API_URL ?? '';
+        const res = await fetch(`${apiBase}/notifications/stream`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             Accept: 'text/event-stream',
