@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
-import Redis from 'ioredis';
-import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { verifyAccessToken } from '../../utils/tokens';
 import { UnauthorizedError } from '../../utils/errors';
+import { NOTIFICATION_CHANNEL } from './notifications.service';
+import { addClient, removeClient } from './sse-hub';
 
 /**
  * SSE endpoint for real-time notifications.
@@ -51,24 +51,23 @@ export async function streamNotifications(req: Request, res: Response) {
   // Initial hello so the client knows we're connected (EventSource fires onopen)
   res.write(`event: connected\ndata: ${JSON.stringify({ userId, ts: Date.now() })}\n\n`);
 
-  // Per-connection subscriber — ioredis doesn't allow regular commands on a
-  // subscribed connection, so we can't reuse the shared redisSub here.
-  const sub = new Redis(env.REDIS_URL);
-  const channel = `notifications:${userId}`;
-  await sub.subscribe(channel);
-
-  sub.on('message', (_ch, message) => {
-    res.write(`event: notification\ndata: ${message}\n\n`);
-  });
+  // Register on the shared subscriber hub — no new Redis connection per client,
+  // so the Redis connection count stays constant regardless of how many tabs
+  // connect (important on small/free Redis plans).
+  const channel = NOTIFICATION_CHANNEL(userId);
+  await addClient(channel, res);
 
   // Heartbeat every 25s — keeps proxies from closing the idle connection
   const heartbeat = setInterval(() => {
     res.write(`: heartbeat\n\n`);
   }, 25_000);
 
-  const cleanup = async () => {
+  let cleanedUp = false;
+  const cleanup = () => {
+    if (cleanedUp) return; // 'close' and 'aborted' can both fire
+    cleanedUp = true;
     clearInterval(heartbeat);
-    await sub.quit().catch(() => undefined);
+    void removeClient(channel, res);
     logger.debug({ userId }, 'sse client disconnected');
   };
 

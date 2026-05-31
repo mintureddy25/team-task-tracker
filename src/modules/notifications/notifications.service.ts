@@ -1,6 +1,6 @@
 import { NotificationType, Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
-import { redisPub } from '../../config/redis';
+import { redis } from '../../config/redis';
 import { NotFoundError } from '../../utils/errors';
 import type { ListNotificationsQuery } from './notifications.schemas';
 
@@ -22,7 +22,7 @@ export async function emit({ userId, type, taskId, payload }: EmitParams) {
     data: { userId, type, taskId: taskId ?? null, payload },
   });
 
-  await redisPub.publish(NOTIFICATION_CHANNEL(userId), JSON.stringify(notif));
+  await redis.publish(NOTIFICATION_CHANNEL(userId), JSON.stringify(notif));
   return notif;
 }
 
