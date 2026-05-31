@@ -5,6 +5,21 @@ REST API + React SPA for a team-based task tracker with multi-tenant orgs, JWT a
 **Backend:** Node.js · TypeScript · Express · Prisma · MySQL · Redis · Zod · Swagger · Jest · Docker
 **Frontend:** React 18 · TypeScript · Vite · Redux Toolkit + RTK Query · React Router · Tailwind CSS
 
+## 🔗 Live deployment
+
+| | |
+|---|---|
+| **Live app** | https://tasktracker.saitejareddy.online |
+| **API + Swagger docs** | https://task.saitejareddy.online/docs |
+| **Health check** | https://task.saitejareddy.online/health |
+
+**Demo login** (try the different roles):
+- ADMIN — `admin@saiteja.com`
+- MANAGER — `priya@saiteja.com`
+- MEMBER — `sneha@saiteja.com`
+
+Password for all: `Saiteja@2026`
+
 ---
 
 ## Interface
