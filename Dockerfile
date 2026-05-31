@@ -38,5 +38,6 @@ COPY prisma ./prisma
 
 EXPOSE 3000
 
-# Run pending migrations on boot, then start the API
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Retry migrations until the DB is reachable (MySQL's first-boot init can briefly
+# pass its healthcheck before it actually accepts connections), then start the API.
+CMD ["sh", "-c", "until npx prisma migrate deploy; do echo 'DB not ready yet — retrying in 3s'; sleep 3; done; node dist/index.js"]
