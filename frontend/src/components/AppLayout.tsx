@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAppSelector } from '../app/hooks';
@@ -25,6 +26,7 @@ export default function AppLayout() {
   const user = useAppSelector(s => s.auth.user);
   const navigate = useNavigate();
   const [doLogout] = useLogoutMutation();
+  const [navOpen, setNavOpen] = useState(false);
 
   // Subscribe to SSE while authenticated
   useSSE();
@@ -34,26 +36,51 @@ export default function AppLayout() {
   const visible = NAV.filter(n => !n.roles || n.roles.includes(user.role));
 
   return (
-    <div className="h-screen flex bg-paper text-ink">
-      {/* Sidebar — ink rail */}
-      <aside className="w-64 bg-ink text-paper flex flex-col shrink-0">
-        <div className="px-6 pt-7 pb-6">
-          <div className="eyebrow text-paper/40">Task&nbsp;Tracker</div>
-          <div className="mt-1 font-display text-2xl leading-none tracking-tight text-paper">
-            Ledger<span className="text-signal-ochre">.</span>
+    <div className="h-screen flex bg-paper text-ink overflow-hidden">
+      {/* Mobile drawer backdrop */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — ink rail. Off-canvas drawer on mobile, static on lg+ */}
+      <aside
+        className={clsx(
+          'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-ink text-paper flex flex-col shrink-0',
+          'transform transition-transform duration-200 ease-out lg:translate-x-0',
+          navOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="px-6 pt-7 pb-6 flex items-start justify-between">
+          <div>
+            <div className="eyebrow text-paper/40">Task&nbsp;Tracker</div>
+            <div className="mt-1 font-display text-2xl leading-none tracking-tight text-paper">
+              Ledger<span className="text-signal-ochre">.</span>
+            </div>
+            <div className="mt-3 font-mono text-[10px] text-paper/35 tracking-wider">
+              ORG&nbsp;·&nbsp;{user.orgId.slice(0, 8).toUpperCase()}
+            </div>
           </div>
-          <div className="mt-3 font-mono text-[10px] text-paper/35 tracking-wider">
-            ORG&nbsp;·&nbsp;{user.orgId.slice(0, 8).toUpperCase()}
-          </div>
+          {/* Close (mobile only) */}
+          <button
+            onClick={() => setNavOpen(false)}
+            className="lg:hidden -mr-1 -mt-1 p-1.5 text-paper/50 hover:text-paper"
+            aria-label="Close menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         <div className="mx-6 border-t border-paper/10" />
 
-        <nav className="flex-1 px-3 py-5 space-y-1">
+        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
           {visible.map(n => (
             <NavLink
               key={n.to}
               to={n.to}
+              onClick={() => setNavOpen(false)}
               className={({ isActive }) =>
                 clsx(
                   'group flex items-center gap-3 px-3 py-2.5 rounded-card text-sm transition-all duration-150',
@@ -88,13 +115,21 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header / masthead */}
-        <header className="relative z-40 h-16 bg-paper/80 backdrop-blur-sm border-b border-line px-8 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 text-sm text-muted">
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Signed in</span>
-            <span className="font-medium text-ink">{user.name}</span>
-            <span className={clsx('chip', roleChip(user.role))}>{user.role}</span>
+        <header className="relative z-40 h-16 bg-paper/80 backdrop-blur-sm border-b border-line px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 text-sm text-muted">
+            {/* Hamburger (mobile only) */}
+            <button
+              onClick={() => setNavOpen(true)}
+              className="lg:hidden -ml-1 p-1.5 text-ink hover:bg-ink/[0.05] rounded-card shrink-0"
+              aria-label="Open menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-[0.14em] text-faint shrink-0">Signed in</span>
+            <span className="font-medium text-ink truncate">{user.name}</span>
+            <span className={clsx('chip shrink-0', roleChip(user.role))}>{user.role}</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <NotificationBell />
             <button
               onClick={async () => {
@@ -103,13 +138,14 @@ export default function AppLayout() {
               }}
               className="btn-ghost text-sm"
             >
-              Logout
+              <span className="hidden sm:inline">Logout</span>
+              <svg className="sm:hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
           </div>
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto px-8 py-7">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-8 py-5 sm:py-7">
           <Outlet />
         </main>
       </div>

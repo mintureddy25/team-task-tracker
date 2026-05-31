@@ -10,7 +10,11 @@
 
 @layer base {
   html, body, #root { height: 100%; }
-  html { color-scheme: light; }
+  html { color-scheme: light; overflow-x: hidden; }
+
+  /* Form controls (esp. <select>) must shrink below their content width on
+     mobile, otherwise their intrinsic min-size forces horizontal overflow. */
+  input, select, textarea, button { min-width: 0; }
 
   body {
     @apply bg-paper text-ink antialiased font-sans;

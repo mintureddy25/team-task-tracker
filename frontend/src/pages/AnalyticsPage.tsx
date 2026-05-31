@@ -36,7 +36,8 @@ export default function AnalyticsPage() {
           <h2 className="font-display text-lg text-ink">Per-user performance</h2>
           <p className="font-mono text-[10px] uppercase tracking-wider text-faint mt-1">Sorted by overdue desc, then completed desc</p>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead>
             <tr className="border-b border-line-strong">
               <th className="text-left px-5 py-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">User</th>
@@ -67,6 +68,7 @@ export default function AnalyticsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

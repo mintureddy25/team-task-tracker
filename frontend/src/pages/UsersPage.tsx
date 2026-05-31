@@ -62,7 +62,8 @@ export default function UsersPage() {
 
       <div className="bg-bone border border-line rounded-card shadow-card overflow-hidden animate-fade-up"
            style={{ animationDelay: '60ms' }}>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[680px]">
           <thead>
             <tr className="border-b border-line-strong">
               <th className="text-left px-5 py-3.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted font-medium">Name</th>
@@ -106,6 +107,7 @@ export default function UsersPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {showInvite && (

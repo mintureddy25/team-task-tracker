@@ -124,9 +124,9 @@ function FilterSelect({
   options: { v: string; l: string }[];
 }) {
   return (
-    <div>
+    <div className="w-full sm:w-auto">
       <label className="label">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)} className="input min-w-[160px]">
+      <select value={value} onChange={e => onChange(e.target.value)} className="input w-full sm:min-w-[160px]">
         {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
       </select>
     </div>
